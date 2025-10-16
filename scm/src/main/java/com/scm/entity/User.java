@@ -1,5 +1,6 @@
 package com.scm.entity;
 
+import com.scm.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,4 +28,7 @@ public class User {
     private String about;
 
     private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.ROLE_USER;
 }

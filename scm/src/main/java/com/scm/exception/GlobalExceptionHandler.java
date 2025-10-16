@@ -50,4 +50,13 @@ public class GlobalExceptionHandler {
         ErrorDetails errorDetails = new ErrorDetails(errors, "Validation failed", LocalDateTime.now());
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
+
+    // ResourceAlreadyExistException
+    @ExceptionHandler(ResourceAlreadyExistException.class)
+    public ResponseEntity<ErrorDetails> handleResourceExistException(ResourceAlreadyExistException exception, WebRequest request) {
+        ErrorDetails errorDetails = new ErrorDetails(
+                exception.getMessage(), request.getDescription(false), LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+    }
 }
