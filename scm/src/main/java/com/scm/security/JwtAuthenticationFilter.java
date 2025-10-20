@@ -1,5 +1,6 @@
 package com.scm.security;
 
+import com.scm.service.impl.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,33 +20,39 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
     private CustomUserDetailsService customUserDetailsService;
+    private TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
+        String jwt = null;
+        String userEmail = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+
+            // ✅ Check if token is blacklisted
+            if (tokenBlacklistService.isBlacklisted(jwt)) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been logged out");
+                return;
+            }
+
+            userEmail = jwtUtil.extractUsername(jwt);
         }
 
-        jwt = authHeader.substring(7);
-        username = jwtUtil.extractUsername(jwt);
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(userEmail);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-
-            if (jwtUtil.isTokenValid(jwt, username)) {
+            if (jwtUtil.isTokenValid(jwt, userEmail)) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+
         }
         filterChain.doFilter(request, response);
     }

@@ -1,5 +1,6 @@
 package com.scm.exception;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
+import java.security.SignatureException;
 import java.time.LocalDateTime;
 
 @ControllerAdvice
@@ -58,5 +60,27 @@ public class GlobalExceptionHandler {
                 exception.getMessage(), request.getDescription(false), LocalDateTime.now()
         );
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<ErrorDetails> handleSignatureException(SignatureException exception, WebRequest request) {
+        ErrorDetails errorDetails = new ErrorDetails(
+                exception.getMessage(), "Invalid or tampered JWT signature", LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorDetails, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ErrorDetails> handleExpiredJwtException(
+            ExpiredJwtException exception,
+            WebRequest request) {
+
+        ErrorDetails errorDetails = new ErrorDetails(
+                "JWT token has expired",
+                request.getDescription(false),
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.UNAUTHORIZED);
     }
 }
